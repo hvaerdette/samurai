@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="侍 Tasks">
+<meta name="theme-color" content="#0d0b18">
+<title>侍 Samurai Tasks</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: linear-gradient(160deg, #0d0b18 0%, #160d28 55%, #0b1826 100%);
+  background-attachment: fixed;
+  color: #f0ece4;
+  font-family: Georgia, serif;
+  min-height: 100vh;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+#header {
+  padding: 52px 18px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  flex-shrink: 0;
+  background: rgba(13,11,24,.6);
+  backdrop-filter: blur(8px);
+}
+
+#content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#tabbar {
+  display: flex;
+  border-top: 1px solid rgba(255,255,255,.1);
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+  background: rgba(10,9,20,.95);
+}
+
+.tb {
+  flex: 1; padding: 10px 2px;
+  background: transparent; border: none;
+  color: rgba(255,255,255,.3); font-size: 10px;
+  cursor: pointer; font-family: Georgia, serif;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: color .2s;
+}
+.tb.on { color: #f8e060; }
+.tb-icon { font-size: 20px; line-height: 1; }
+
+.task-btn {
+  width: 100%; margin-bottom: 8px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: 13px 16px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; color: #f0ece4;
+  font-family: Georgia, serif; font-size: 15px;
+  text-align: left; transition: background .2s, border .2s;
+  min-height: 58px;
+}
+.task-btn.done { background: rgba(90,180,70,.09); border-color: rgba(90,180,70,.22); }
+
+.task-meta { font-size: 10px; color: rgba(255,255,255,.35); margin-top: 3px; }
+.task-hint { font-size: 11px; color: rgba(255,255,255,.2); flex-shrink: 0; }
+
+.section-lbl {
+  font-size: 10px; letter-spacing: 3px; color: #c8a84b;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+
+.xp-bar-bg { background: rgba(255,255,255,.08); border-radius: 4px; height: 5px; margin-top: 10px; }
+.xp-bar { background: linear-gradient(90deg,#c8a84b,#f0c030); height: 100%; border-radius: 4px; transition: width .6s; }
+
+#toast {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg,#132213,#0a1a0a);
+  border: 1px solid rgba(100,210,80,.4); border-radius: 12px;
+  padding: 12px 20px; z-index: 9999; text-align: center;
+  box-shadow: 0 6px 24px rgba(0,0,0,.6); max-width: 280px; width: 90%;
+  pointer-events: none; opacity: 0; transition: opacity .3s;
+}
+#toast.show { opacity: 1; }
+
+.btn {
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px; padding: 7px 13px;
+  color: rgba(255,255,255,.65); font-size: 12px; cursor: pointer; font-family: Georgia, serif;
+}
+.btn-gold { background: rgba(200,168,75,.18); border-color: rgba(200,168,75,.4); color: #f8e060; }
+.btn-green { background: rgba(90,200,70,.15); border-color: rgba(90,200,70,.3); color: #80e060; font-size: 15px; }
+
+.sleep-btn {
+  background: rgba(80,80,180,.35); border: 1px solid rgba(140,140,255,.5);
+  border-radius: 12px; padding: 10px 14px; color: #b0b0ff;
+  cursor: pointer; font-family: Georgia, serif;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+}
+.sleep-btn.off { background: rgba(40,40,80,.2); border-color: rgba(255,255,255,.1); color: rgba(255,255,255,.2); cursor: default; }
+
+input[type=text] {
+  width: 100%; background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
+  padding: 11px 12px; color: #f0ece4; font-size: 15px;
+  outline: none; font-family: Georgia, serif; margin-bottom: 10px;
+}
+
+.cat-pill {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px; padding: 5px 11px;
+  color: rgba(255,255,255,.4); font-size: 12px; cursor: pointer;
+  font-family: Georgia, serif; margin: 0 5px 6px 0; display: inline-block;
+}
+.cat-pill.on { background: rgba(200,168,75,.2); border-color: rgba(200,168,75,.5); color: #f8e060; }
+
+.stat-bar-bg { background: rgba(255,255,255,.08); border-radius: 3px; height: 5px; }
+.stat-bar { background: linear-gradient(90deg,#c8a84b,#f0c030); height: 100%; border-radius: 3px; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.stat-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 14px 12px; }
+
+.level-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+  border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.03);
+}
+.level-row.cur { background: rgba(200,168,75,.12); border-color: rgba(200,168,75,.35); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<script>
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const DAILY = [
+  { id:'medisiner', name:'Ta medisiner',    cat:'helse',  icon:'💊', xp:20 },
+  { id:'oppvask',   name:'Vaske opp',       cat:'hus',    icon:'🍽️', xp:15 },
+  { id:'kjokken',   name:'Vaske kjøkkenet', cat:'hus',    icon:'🧹', xp:18 },
+  { id:'gitar',     name:'Øve på gitar',    cat:'musikk', icon:'🎸', xp:28 },
+];
+
+const OUTDOOR = [
+  { id:'plen',     name:'Klippe plen',              cat:'hage', icon:'🌿', xp:38 },
+  { id:'hekk',     name:'Klippe hekk',              cat:'hage', icon:'✂️', xp:30 },
+  { id:'luking',   name:'Luke i hagen',             cat:'hage', icon:'🌱', xp:25 },
+  { id:'vanning',  name:'Vanne planter',            cat:'hage', icon:'💧', xp:14 },
+  { id:'rake',     name:'Rake løv / rydde',         cat:'hage', icon:'🍂', xp:28 },
+  { id:'kompost',  name:'Tømme kompost',            cat:'hage', icon:'♻️', xp:18 },
+  { id:'vaskebil', name:'Vaske biler',              cat:'bil',  icon:'🚗', xp:32 },
+  { id:'fiksebil', name:'Fikse / sjekke bil',       cat:'bil',  icon:'🔧', xp:38 },
+  { id:'feie',     name:'Feie innkjørsel/terrasse', cat:'hus',  icon:'🧹', xp:22 },
+  { id:'terrasse', name:'Rydde/vaske terrassen',    cat:'hus',  icon:'🪣', xp:28 },
+  { id:'vinduer',  name:'Vaske vinduer',            cat:'hus',  icon:'🪟', xp:25 },
+  { id:'garasje',  name:'Rydde garasje / bod',      cat:'hus',  icon:'📦', xp:35 },
+];
+
+const CATS = [
+  { id:'hus',     lbl:'Hus',     icon:'🏠', xp:18 },
+  { id:'hage',    lbl:'Hage',    icon:'🌿', xp:22 },
+  { id:'bil',     lbl:'Bil',     icon:'🚗', xp:28 },
+  { id:'musikk',  lbl:'Musikk',  icon:'🎸', xp:25 },
+  { id:'familie', lbl:'Familie', icon:'👨‍👩‍👦', xp:22 },
+  { id:'helse',   lbl:'Helse',   icon:'💊', xp:20 },
+  { id:'okonomi', lbl:'Økonomi', icon:'💰', xp:18 },
+  { id:'annet',   lbl:'Annet',   icon:'📋', xp:15 },
+];
+
+const LEVELS = [
+  { t:'Ashigaru',   jp:'足軽',  min:0    },
+  { t:'Samurai',    jp:'侍',    min:150  },
+  { t:'Kenjutsuka', jp:'剣術家', min:400  },
+  { t:'Hatamoto',   jp:'旗本',  min:800  },
+  { t:'Bushi',      jp:'武士',  min:1500 },
+  { t:'Kensei',     jp:'剣聖',  min:2500 },
+  { t:'Daimyo',     jp:'大名',  min:4000 },
+  { t:'Shogun',     jp:'将軍',  min:6500 },
+];
+
+const MSGS = [
+  'Disiplin er krigerens sterkeste våpen.',
+  'En plikt fullført er et skritt mot mesterskap.',
+  'Veien til Shogun starter med ett steg.',
+  'Orden i huset, orden i sinnet.',
+  'Krigeren handler — drømmeren venter.',
+  'Hvert lite skritt teller på veien til storhet.',
+  'En sann kriger fullfører det han starter.',
+  'Kroppen er krigerens tempel. Pleie den vel.',
+  'God helse er grunnlaget for all styrke.',
+  'Musikken er krigerens sjel.',
+  'Hver øving skjerper sverdets klinge.',
+  'Hagen som stelles, blomstrer som sinnet.',
+  'Et rent hus er et klart sinn.',
+  'Orden utad skaper ro innad.',
+  'Bushido — veien til rettskaffenhet.',
+  'Handling over ord. Alltid.',
+  'Konsistens er den virkelige superkraften.',
+  'I dag bedre enn i går. I morgen bedre enn i dag.',
+  'Hverdagens plikt er krigerens heder.',
+  'Ingen oppgave er for liten for en sann kriger.',
+  'Fokus. Utførelse. Seier.',
+  'Samurai-ånden lever i handling.',
+  'Sverd skjerpes med bruk. Sjel skjerpes med plikt.',
+  'Dagens innsats er morgendagens styrke.',
+  'Æren tilhører den som handler.',
+  'Ro i sinnet, orden i verden.',
+  'En vel vedlikeholdt vogn bærer krigeren langt.',
+  'Mesterskap kommer av tusen repetisjoner.',
+  'Utholdenheten er krigerens hemmelige våpen.',
+  'Selv den store eika begynte som et frø.',
+  'Skarpt sinn. Sterke hender. Rent hjerte.',
+  'Den disiplinerte kriger frykter ingenting.',
+  'Æren vokser med hvert fullførte oppdrag.',
+  'Bra gjort, kriger. Fortsett slik.',
+  'Til og med Shogun vasket opp en gang.',
+  'Ikke dårlig. Ikke dårlig i det hele tatt.',
+  'Krigerens vei krever daglig øvelse.',
+  'Kjempe godt er bedre enn kjempe hardt.',
+  'Det lille skaper det store.',
+  'Sterk innsats, sterk kriger.',
+];
+
+const BONUS_REASONS = [
+  'En lenge ventet plikt kaller på deg.',
+  'Mester mener dette er viktig i dag.',
+  'Denne oppgaven fortjener ekstra heder.',
+  'Krigeren med mot tar det vanskeligste først.',
+  'En verdig utfordring for din rang.',
+];
+
+const SK = 'samurai-pwa-v1';
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let S = { xp:0, streak:0, lastDate:null, dailyLogs:{}, outLogs:{}, todos:[], history:[], bonusTask:null, sleepDate:null };
+
+function loadS() {
+  try { const r = localStorage.getItem(SK); if (r) S = Object.assign({}, S, JSON.parse(r)); } catch(_) {}
+}
+function saveS() {
+  try { localStorage.setItem(SK, JSON.stringify(S)); } catch(_) {}
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+const tod = () => new Date().toDateString();
+const now = () => { const n=new Date(); return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0'); };
+const randMsg = () => MSGS[Math.floor(Math.random()*MSGS.length)];
+const rollXP = (base,bonus) => { const v=Math.floor(base*.25); const b=base+Math.floor(Math.random()*v*2)-v; return bonus ? Math.floor(b*1.5) : b; };
+const cat = id => CATS.find(c=>c.id===id) || CATS[CATS.length-1];
+const lvl = xp => [...LEVELS].reverse().find(l=>xp>=l.min) || LEVELS[0];
+const nlvl = xp => LEVELS.find(l=>l.min>xp) || null;
+const todLogs = (logs,id) => { const t=tod(); return (logs[id]||[]).filter(e=>e.date===t); };
+const lastLog = (logs,id) => { const a=logs[id]||[]; return a.length ? a[a.length-1] : null; };
+const addLog = (logs,id) => { const p=logs[id]||[]; return Object.assign({},logs,{[id]:[...p,{date:tod(),time:now()}]}); };
+
+function bumpStreak() {
+  const t=tod(), yest=new Date(); yest.setDate(yest.getDate()-1);
+  if (S.lastDate===t) return S.streak;
+  if (S.lastDate===yest.toDateString()) return S.streak+1;
+  return 1;
+}
+
+function fmtLog(log) {
+  if (!log) return '';
+  return log.date===tod() ? 'sist kl. '+log.time : 'sist '+log.date;
+}
+
+// ── UI STATE ──────────────────────────────────────────────────────────────────
+
+let TAB = 'hjem';
+let ADD = false;
+let NEWCAT = 'hus';
+let tTimer = null;
+
+function toast(msg, xp) {
+  const el = document.getElementById('toast');
+  el.innerHTML = `<div style="color:#90e060;font-size:14px">${msg}</div><div style="color:#c8a84b;font-weight:bold;font-size:17px;margin-top:3px">+${xp} XP</div>`;
+  el.classList.add('show');
+  if (tTimer) clearTimeout(tTimer);
+  tTimer = setTimeout(() => el.classList.remove('show'), 3800);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+
+function render() {
+  document.getElementById('app').innerHTML = hdr() + `<div id="content">${page()}</div>` + tabs();
+  bind();
+}
+
+function hdr() {
+  const l=lvl(S.xp), n=nlvl(S.xp);
+  const prog = n ? Math.min(100,((S.xp-l.min)/(n.min-l.min))*100) : 100;
+  const slept = S.sleepDate===tod();
+  const txp = S.history.filter(h=>h.date===tod()).reduce((s,h)=>s+h.xp,0);
+  return `<div id="header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <div style="font-size:10px;letter-spacing:3px;color:#c8a84b;text-transform:uppercase;margin-bottom:2px">${l.jp} — ${l.t}</div>
+      <div style="font-size:24px;font-weight:bold;color:#f8e060;line-height:1">${S.xp.toLocaleString('nb')} <span style="font-size:14px;color:#c8a84b;font-weight:normal">XP</span></div>
+      ${S.streak>0?`<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:3px">🔥 ${S.streak} dager på rad</div>`:''}
+    </div>
+    <button class="sleep-btn${slept?' off':''}" id="slp" ${slept?'disabled':''}>
+      <span style="font-size:20px">🌙</span>
+      <span style="font-size:10px">${slept?'Sover':'Legger meg'}</span>
+    </button>
+  </div>
+  ${n?`<div class="xp-bar-bg"><div class="xp-bar" style="width:${prog}%"></div></div>
+  <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:3px">${(n.min-S.xp).toLocaleString('nb')} XP til ${n.t} (${n.jp})</div>`:''}
+  </div>`;
+}
+
+function tabs() {
+  return `<div id="tabbar">${[['hjem','🏯','Hjem'],['ute','🌿','Ute'],['oppgaver','📜','Gjøremål'],['stats','📊','Stats']].map(([id,ic,lb])=>
+    `<button class="tb${TAB===id?' on':''}" data-tab="${id}"><span class="tb-icon">${ic}</span><span>${lb}</span></button>`
+  ).join('')}</div>`;
+}
+
+function taskBtn(task, logs, type) {
+  const tc=todLogs(logs,task.id), ll=lastLog(logs,task.id), cnt=tc.length;
+  const meta = ll ? (cnt>0?cnt+'× i dag · ':'')+fmtLog(ll) : '';
+  return `<button class="task-btn${cnt>0?' done':''}" data-a="do-${type}" data-id="${task.id}">
+    <span style="font-size:20px">${cnt>0?'✅':task.icon}</span>
+    <div style="flex:1;text-align:left">
+      <div>${task.name}</div>
+      ${meta?`<div class="task-meta">${meta}</div>`:''}
+    </div>
+    <span class="task-hint">${cnt>0?'Igjen +':'Trykk ✓'}</span>
+  </button>`;
+}
+
+function page() {
+  if (TAB==='hjem')     return pgHjem();
+  if (TAB==='ute')      return pgUte();
+  if (TAB==='oppgaver') return pgOppgaver();
+  if (TAB==='stats')    return pgStats();
+  return '';
+}
+
+function pgHjem() {
+  const allDone = DAILY.every(t=>todLogs(S.dailyLogs,t.id).length>0);
+  const txp = S.history.filter(h=>h.date===tod()).reduce((s,h)=>s+h.xp,0);
+  let bonus = '';
+  if (S.bonusTask) {
+    const bt = S.todos.find(t=>t.id===S.bonusTask.tid);
+    if (bt) bonus=`<div style="margin-top:18px;padding:14px 16px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.3);border-radius:12px">
+      <div style="font-size:10px;letter-spacing:2px;color:#c8a84b;text-transform:uppercase;margin-bottom:5px">⚔️ Dagens utfordring +${S.bonusTask.bxp} bonus XP</div>
+      <div style="color:#f8e060;font-size:15px">${bt.name}</div>
+      <div style="color:rgba(255,255,255,.35);font-size:12px;margin-top:3px">${S.bonusTask.grunn}</div>
+    </div>`;
+  }
+  return `<div class="section-lbl">Daglige plikter</div>
+  ${allDone?'<div style="background:rgba(90,190,70,.1);border:1px solid rgba(90,190,70,.25);border-radius:10px;padding:10px 14px;margin-bottom:12px;color:#7edd55;font-size:13px;text-align:center">⚔️ Alle daglige plikter fullført i dag!</div>':''}
+  ${DAILY.map(t=>taskBtn(t,S.dailyLogs,'daily')).join('')}
+  ${bonus}
+  <div style="text-align:center;margin-top:16px;color:rgba(255,255,255,.2);font-size:12px">I dag: +${txp} XP</div>`;
+}
+
+function pgUte() {
+  return `<div class="section-lbl">Utendørsoppgaver</div>
+  <div style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:14px">Trykk når du har gjort noe — logger antall og klokkeslett.</div>
+  ${OUTDOOR.map(t=>taskBtn(t,S.outLogs,'outdoor')).join('')}`;
+}
+
+function pgOppgaver() {
+  const form = ADD ? `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:16px">
+    <input type="text" id="ni" placeholder="Hva må gjøres?">
+    <div style="margin-bottom:10px">${CATS.map(c=>`<button class="cat-pill${NEWCAT===c.id?' on':''}" data-a="setcat" data-cat="${c.id}">${c.icon} ${c.lbl}</button>`).join('')}</div>
+    <button style="width:100%;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);border-radius:8px;padding:11px;color:#f8e060;font-size:14px;cursor:pointer;font-family:Georgia,serif" data-a="addtodo">Legg til</button>
+  </div>` : '';
+
+  const list = S.todos.length===0
+    ? '<div style="text-align:center;padding:48px 0;color:rgba(255,255,255,.2);font-size:14px">Ingen gjøremål ennå.<br>Trykk «+ Legg til» for å starte.</div>'
+    : S.todos.map(t => {
+        const ib=S.bonusTask?.tid===t.id, ci=cat(t.category);
+        return `<div style="background:${ib?'rgba(200,168,75,.07)':'rgba(255,255,255,.04)'};border:1px solid ${ib?'rgba(200,168,75,.3)':'rgba(255,255,255,.1)'};border-radius:12px;padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">${ci.icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="color:#f0ece4;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}${ib?' <span style="font-size:10px;color:#c8a84b">⚔️</span>':''}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px">${ci.lbl}</div>
+          </div>
+          <button class="btn btn-green" data-a="dotodo" data-id="${t.id}" style="padding:5px 12px;flex-shrink:0">✓</button>
+          <button style="background:transparent;border:none;color:rgba(255,255,255,.2);font-size:16px;cursor:pointer;padding:0 3px;flex-shrink:0" data-a="deltodo" data-id="${t.id}">✕</button>
+        </div>`;
+      }).join('');
+
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div class="section-lbl" style="margin:0">Gjøremål (${S.todos.length})</div>
+    <div style="display:flex;gap:8px">
+      ${S.todos.length>=2?`<button class="btn btn-gold" data-a="bonus">⚔️ Utfordring</button>`:''}
+      <button class="btn" data-a="toggle">${ADD?'✕ Lukk':'+ Legg til'}</button>
+    </div>
+  </div>
+  ${form}${list}`;
+}
+
+function pgStats() {
+  const l=lvl(S.xp);
+  const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const k=d.toDateString();return{lb:['Søn','Man','Tir','Ons','Tor','Fre','Lør'][d.getDay()],xp:S.history.filter(h=>h.date===k).reduce((s,h)=>s+h.xp,0)};});
+  const mx=Math.max(...days.map(d=>d.xp),1);
+  const chart=`<div style="display:flex;gap:5px;align-items:flex-end;height:90px;margin-bottom:22px">${days.map(d=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">${d.xp>0?`<div style="font-size:9px;color:rgba(255,255,255,.35)">${d.xp}</div>`:''}<div style="width:100%;height:${d.xp?Math.max(8,(d.xp/mx)*62):4}px;background:${d.xp?'linear-gradient(180deg,#f8e060,#c8a84b)':'rgba(255,255,255,.06)'};border-radius:4px 4px 2px 2px"></div><div style="font-size:10px;color:rgba(255,255,255,.35)">${d.lb}</div></div>`).join('')}</div>`;
+
+  const cm={};S.history.forEach(h=>{if(!cm[h.cat])cm[h.cat]={xp:0,n:0};cm[h.cat].xp+=h.xp;cm[h.cat].n++;});
+  const cs=CATS.filter(c=>cm[c.id]).map(c=>({...c,...cm[c.id]})).sort((a,b)=>b.xp-a.xp);
+  const mcx=Math.max(...cs.map(c=>c.xp),1);
+  const cbars=cs.length?`<div class="section-lbl">XP per kategori</div>${cs.map(c=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:11px"><span style="font-size:17px">${c.icon}</span><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;color:#f0ece4">${c.lbl}</span><span style="font-size:12px;color:#c8a84b">${c.xp} XP · ${c.n}×</span></div><div class="stat-bar-bg"><div class="stat-bar" style="width:${(c.xp/mcx)*100}%"></div></div></div></div>`).join('')}`:'';
+
+  const lvls=LEVELS.map(ll=>{const r=S.xp>=ll.min,ic=lvl(S.xp).min===ll.min;return`<div class="level-row${ic?' cur':''}" style="opacity:${r?1:.35}"><span style="font-size:14px">${r?'⚔️':'🔒'}</span><span style="font-size:13px;color:${ic?'#f8e060':'#f0ece4'};flex:1">${ll.jp} — ${ll.t}</span><span style="font-size:11px;color:rgba(255,255,255,.3)">${ll.min.toLocaleString('nb')} XP</span></div>`;}).join('');
+
+  return `<div class="grid2">${[['⚡','Total XP',S.xp.toLocaleString('nb')],['✅','Oppgaver',S.history.length],['⚔️','Rang',l.t],['🔥','Streak',S.streak+' dager']].map(([ic,lb,v])=>`<div class="stat-card"><div style="font-size:20px">${ic}</div><div style="font-size:18px;font-weight:bold;color:#f8e060;margin-top:4px">${v}</div><div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px">${lb}</div></div>`).join('')}</div>
+  <div class="section-lbl">XP siste 7 dager</div>${chart}${cbars}
+  <div class="section-lbl" style="margin-top:20px">Samurai-rang</div>${lvls}
+  ${S.history.length===0?'<div style="text-align:center;padding:30px 0;color:rgba(255,255,255,.2);font-size:13px">Fullfør noen oppgaver for å se statistikk.</div>':''}`;
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+
+function bind() {
+  document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>{TAB=el.dataset.tab;ADD=false;render();}));
+  const slp=document.getElementById('slp');
+  if(slp) slp.addEventListener('click',doSleep);
+
+  document.querySelectorAll('[data-a]').forEach(el=>el.addEventListener('click',e=>{
+    const a=el.dataset.a;
+    if(a==='do-daily')   doTask('daily',el.dataset.id);
+    if(a==='do-outdoor') doTask('outdoor',el.dataset.id);
+    if(a==='dotodo')     doTodo(el.dataset.id);
+    if(a==='deltodo')    delTodo(el.dataset.id);
+    if(a==='toggle')     { ADD=!ADD; render(); }
+    if(a==='addtodo')    addTodo();
+    if(a==='bonus')      doBonus();
+    if(a==='setcat')     { NEWCAT=el.dataset.cat; render(); setTimeout(()=>document.getElementById('ni')?.focus(),50); }
+  }));
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+
+function doTask(type, id) {
+  const list = type==='daily' ? DAILY : OUTDOOR;
+  const task = list.find(t=>t.id===id);
+  if(!task) return;
+  const earned = rollXP(task.xp, false);
+  S[type==='daily'?'dailyLogs':'outLogs'] = addLog(S[type==='daily'?'dailyLogs':'outLogs'], id);
+  S.xp += earned;
+  S.streak = bumpStreak();
+  S.lastDate = tod();
+  S.history = [...S.history, {name:task.name, cat:task.cat, xp:earned, date:tod()}];
+  saveS(); toast(randMsg(), earned); render();
+}
+
+function doTodo(id) {
+  const todo = S.todos.find(t=>t.id===id);
+  if(!todo) return;
+  const ib = S.bonusTask?.tid===id;
+  const base = cat(todo.category).xp;
+  const earned = rollXP(base, ib) + (ib ? S.bonusTask.bxp : 0);
+  S.todos = S.todos.filter(t=>t.id!==id);
+  S.xp += earned;
+  S.streak = bumpStreak();
+  S.lastDate = tod();
+  S.history = [...S.history, {name:todo.name, cat:todo.category, xp:earned, date:tod(), bonus:ib}];
+  if(ib) S.bonusTask = null;
+  saveS(); toast(randMsg()+(ib?' ⚔️ Bonus!':''), earned); render();
+}
+
+function addTodo() {
+  const el = document.getElementById('ni');
+  if(!el) return;
+  const name = el.value.trim();
+  if(!name) return;
+  S.todos = [...S.todos, {id:Date.now().toString(), name, category:NEWCAT, added:tod()}];
+  saveS(); ADD=false; render();
+}
+
+function delTodo(id) {
+  S.todos = S.todos.filter(t=>t.id!==id);
+  if(S.bonusTask?.tid===id) S.bonusTask=null;
+  saveS(); render();
+}
+
+function doSleep() {
+  if(S.sleepDate===tod()) return;
+  const h=new Date().getHours();
+  const ok=h>=21||h<3;
+  const earned=ok?25:8;
+  S.xp+=earned; S.sleepDate=tod();
+  saveS(); toast(ok?'Visdom og hvile — en kriger vet å hvile.':'Seint, men ikke for sent.', earned); render();
+}
+
+function doBonus() {
+  if(!S.todos.length) return;
+  const sorted=[...S.todos].sort((a,b)=>a.added<b.added?-1:1);
+  const picked=sorted[0];
+  S.bonusTask = { tid:picked.id, bxp:30, grunn:BONUS_REASONS[Math.floor(Math.random()*BONUS_REASONS.length)] };
+  saveS(); render();
+}
+
+// ── START ─────────────────────────────────────────────────────────────────────
+
+loadS();
+render();
+
+</script>
+</body>
+</html>
