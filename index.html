@@ -50,6 +50,547 @@ body{background:linear-gradient(160deg,#0d0b18 0%,#160d28 55%,#0b1826 100%) fixe
 .slbl{font-size:10px;letter-spacing:3px;color:#c8a84b;text-transform:uppercase;margin-bottom:12px}
 .xbbg{background:rgba(255,255,255,.08);border-radius:4px;height:5px;margin-top:10px}
 .xbfill{background:linear-gradient(90deg,#c8a84b,#f0c030);height:100%;border-radius:4px;transition:width .6s}
+#modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;align-items:flex-end;animation:mfade .2s ease}
+#modal-wrap.show{display:flex}
+@keyframes mfade{from{opacity:0}to{opacity:1}}
+#modal-box{background:linear-gradient(180deg,#1a1530,#120e22);border-radius:18px 18px 0 0;width:100%;max-height:75vh;overflow-y:auto;padding:20px 18px 32px;animation:mslide .25s ease}
+@keyframes mslide{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.daybar{cursor:pointer;border-radius:4px 4px 2px 2px;transition:opacity .15s}
+.daybar:active{opacity:.7}top:16px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#132213,#0a1a0a);border:1px solid rgba(100,210,80,.4);border-radius:12px;padding:12px 20px;z-index:9999;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.6);max-width:280px;width:90%;pointer-events:none;opacity:0;transition:opacity .3s}
+#toast.show{opacity:1}
+.btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px 13px;color:rgba(255,255,255,.65);font-size:12px;cursor:pointer;font-family:Georgia,serif}
+.btng{background:rgba(200,168,75,.18);border-color:rgba(200,168,75,.4);color:#f8e060}
+.btnok{background:rgba(90,200,70,.15);border-color:rgba(90,200,70,.3);color:#80e060;font-size:15px}
+.slpbtn{background:rgba(80,80,180,.35);border:1px solid rgba(140,140,255,.5);border-radius:12px;padding:10px 14px;color:#b0b0ff;cursor:pointer;font-family:Georgia,serif;display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
+.slpbtn.off{background:rgba(40,40,80,.2);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.2);cursor:default}
+input[type=text]{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:11px 12px;color:#f0ece4;font-size:15px;outline:none;font-family:Georgia,serif;margin-bottom:10px}
+.catpill{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:5px 11px;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;font-family:Georgia,serif;margin:0 5px 6px 0;display:inline-block}
+.catpill.on{background:rgba(200,168,75,.2);border-color:rgba(200,168,75,.5);color:#f8e060}
+.sbbg{background:rgba(255,255,255,.08);border-radius:3px;height:5px}
+.sbfill{background:linear-gradient(90deg,#c8a84b,#f0c030);height:100%;border-radius:3px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.sc{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 12px}
+.lvlrow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03)}
+.lvlrow.cur{background:rgba(200,168,75,.12);border-color:rgba(200,168,75,.35)}
+/* day modal */
+#modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:flex-end;justify-content:center}
+#modal-bg.show{display:flex;animation:fdin .2s ease}
+@keyframes fdin{from{opacity:0}to{opacity:1}}
+#modal{background:linear-gradient(160deg,#12101e,#0e1520);border:1px solid rgba(255,255,255,.12);border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-width:480px;max-height:70vh;overflow-y:auto;animation:sldup .25s ease}
+@keyframes sldup{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.daybar{cursor:pointer;transition:opacity .15s}
+.daybar:hover{opacity:.75}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<div id="modal-wrap" onclick="closeModal()"><div id="modal-box" onclick="event.stopPropagation()"></div></div>
+<div id="modal-bg" id="modal-bg">
+  <div id="modal"></div>
+</div>
+<script>
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const DG = [ // Daglig Grind groups
+  {id:'med',  name:'Medisiner',    icon:'💊', cat:'helse',  tasks:[
+    {id:'med-m', name:'Morgen',  xp:18},
+    {id:'med-k', name:'Kveld',   xp:18},
+  ]},
+  {id:'kjok', name:'Kjøkkenvask', icon:'🍽️', cat:'hus', tasks:[
+    {id:'kj-o',  name:'Oppvask',      xp:15},
+    {id:'kj-f',  name:'Flasker',      xp:12},
+    {id:'kj-b',  name:'Kjøkkenbenk',  xp:13},
+    {id:'kj-br', name:'Babybrezza',   xp:48, monthly:true},
+  ]},
+  {id:'vask', name:'Vaske',        icon:'🧹', cat:'hus', tasks:[
+    {id:'va-g',  name:'Gulv',     xp:22},
+    {id:'va-t',  name:'Toalett',  xp:18},
+    {id:'va-te', name:'Tepper',   xp:20},
+  ]},
+  {id:'stud', name:'Studio',       icon:'🎸', cat:'musikk', tasks:[
+    {id:'st-o',  name:'Øving',             xp:28},
+    {id:'st-k',  name:'Komponering',       xp:32},
+    {id:'st-i',  name:'Innspilling',       xp:36},
+    {id:'st-m',  name:'Miksing/Mastering', xp:44},
+  ]},
+  {id:'kost', name:'Kosthold',     icon:'🥣', cat:'helse', tasks:[
+    {id:'ko-f',  name:'Frokost',   xp:12},
+    {id:'ko-m',  name:'Middag',    xp:15},
+    {id:'ko-k',  name:'Kveldsmat', xp:10},
+  ]},
+  {id:'okono',name:'Økonomi',      icon:'💰', cat:'okonomi', tasks:[
+    {id:'ok-r',  name:'Regninger',        xp:22},
+    {id:'ok-h',  name:'Handle dagligvarer',xp:20},
+    {id:'ok-a',  name:'Apotek',           xp:15},
+  ]},
+];
+
+const OG = [ // Ute groups
+  {id:'hage', name:'Hage',         icon:'🌿', cat:'hage', tasks:[
+    {id:'ha-p',  name:'Klippe plen', xp:38},
+    {id:'ha-l',  name:'Luke',        xp:25},
+    {id:'ha-b',  name:'Beskjære',    xp:28},
+    {id:'ha-v',  name:'Vanne',       xp:14},
+    {id:'ha-r',  name:'Rake',        xp:28},
+    {id:'ha-ry', name:'Rydde',       xp:20},
+  ]},
+  {id:'bil',  name:'Biler',         icon:'🚗', cat:'bil', subgroups:[
+    {id:'renault', name:'Renault', icon:'🔵', tasks:[
+      {id:'rn-v', name:'Vaske',       xp:32},
+      {id:'rn-r', name:'Rep / service',xp:40},
+      {id:'rn-d', name:'Skifte dekk', xp:42},
+      {id:'rn-p', name:'Polere',      xp:36},
+    ]},
+    {id:'swift', name:'Swift', icon:'🔴', tasks:[
+      {id:'sw-v', name:'Vaske',       xp:32},
+      {id:'sw-r', name:'Rep / service',xp:40},
+      {id:'sw-d', name:'Skifte dekk', xp:42},
+      {id:'sw-p', name:'Polere',      xp:36},
+    ]},
+  ]},
+  {id:'rydde',name:'Rydde / Feie',  icon:'🧹', cat:'hus', tasks:[
+    {id:'ry-g',  name:'Gårdsplass', xp:22},
+    {id:'ry-t',  name:'Terrasse',   xp:25},
+    {id:'ry-ga', name:'Garasje',    xp:32},
+    {id:'ry-b',  name:'Bod',        xp:25},
+  ]},
+  {id:'vaskeute',name:'Vaske',      icon:'🪣', cat:'hus', tasks:[
+    {id:'vu-h',  name:'Hus',     xp:35},
+    {id:'vu-v',  name:'Vinduer', xp:25},
+    {id:'vu-d',  name:'Div',     xp:18},
+  ]},
+  {id:'magnus',name:'Magnus',       icon:'👶', cat:'familie', tasks:[
+    {id:'ma-l',  name:'Luftetur',  xp:20},
+    {id:'ma-le', name:'Lek ute',   xp:18},
+    {id:'ma-s',  name:'Sandkasse', xp:15},
+  ]},
+  {id:'reise', name:'Reise',        icon:'🧳', cat:'familie', tasks:[
+    {id:'re-h',  name:'Hidra',  xp:28},
+    {id:'re-a',  name:'Annet',  xp:20},
+  ]},
+  {id:'besok', name:'Besøk',        icon:'👥', cat:'familie', tasks:[
+    {id:'be-m',  name:'Mamma',   xp:20},
+    {id:'be-f',  name:'Familie', xp:20},
+    {id:'be-v',  name:'Venner',  xp:22},
+  ]},
+  {id:'tur',   name:'Tur',          icon:'🚶', cat:'familie', tasks:[
+    {id:'tu-t',  name:'Trilletur', xp:18},
+    {id:'tu-s',  name:'Shopping',  xp:15},
+    {id:'tu-k',  name:'Kjøretur',  xp:15},
+  ]},
+];
+
+const CATS=[
+  {id:'hus',lbl:'Hus',icon:'🏠',xp:18},{id:'hage',lbl:'Hage',icon:'🌿',xp:22},
+  {id:'bil',lbl:'Bil',icon:'🚗',xp:28},{id:'musikk',lbl:'Musikk',icon:'🎸',xp:25},
+  {id:'familie',lbl:'Familie',icon:'👨‍👩‍👦',xp:22},{id:'helse',lbl:'Helse',icon:'💊',xp:20},
+  {id:'okonomi',lbl:'Økonomi',icon:'💰',xp:18},{id:'annet',lbl:'Annet',icon:'📋',xp:15},
+];
+
+const LVL=[
+  {t:'Ashigaru',jp:'足軽',min:0},{t:'Samurai',jp:'侍',min:150},
+  {t:'Kenjutsuka',jp:'剣術家',min:400},{t:'Hatamoto',jp:'旗本',min:800},
+  {t:'Bushi',jp:'武士',min:1500},{t:'Kensei',jp:'剣聖',min:2500},
+  {t:'Daimyo',jp:'大名',min:4000},{t:'Shogun',jp:'将軍',min:6500},
+];
+
+const MSGS=[
+  'Disiplin er krigerens sterkeste våpen.',
+  'En plikt fullført er et skritt mot mesterskap.',
+  'Orden i huset, orden i sinnet.',
+  'Krigeren handler — drømmeren venter.',
+  'En sann kriger fullfører det han starter.',
+  'Kroppen er krigerens tempel.',
+  'Musikken er krigerens sjel.',
+  'Hagen som stelles, blomstrer som sinnet.',
+  'Et rent hus er et klart sinn.',
+  'Bushido — veien til rettskaffenhet.',
+  'Handling over ord. Alltid.',
+  'Konsistens er den virkelige superkraften.',
+  'I dag bedre enn i går.',
+  'Ingen oppgave er for liten for en sann kriger.',
+  'Fokus. Utførelse. Seier.',
+  'Samurai-ånden lever i handling.',
+  'Sverd skjerpes med bruk. Sjel skjerpes med plikt.',
+  'Æren tilhører den som handler.',
+  'Mesterskap kommer av tusen repetisjoner.',
+  'Skarpt sinn. Sterke hender. Rent hjerte.',
+  'Æren vokser med hvert fullførte oppdrag.',
+  'Veien til Shogun starter med ett steg.',
+  'Bra gjort, kriger. Fortsett slik.',
+  'Til og med Shogun vasket opp en gang.',
+  'Krigerens vei krever daglig øvelse.',
+  'Den disiplinerte kriger frykter ingenting.',
+  'Sterk innsats, sterk kriger.',
+  'Det lille skaper det store.',
+];
+
+const BR=['En lenge ventet plikt kaller på deg.','Mester mener dette er viktig i dag.','Denne oppgaven fortjener ekstra heder.','Krigeren med mot tar det vanskeligste først.','En verdig utfordring for din rang.'];
+
+const SK='samurai-pwa-v2';
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let S={xp:0,streak:0,lastDate:null,dlog:{},olog:{},todos:[],history:[],bonus:null,sleepDate:null};
+function loadS(){try{const r=localStorage.getItem(SK);if(r)S=Object.assign({},S,JSON.parse(r));}catch(_){}}
+function saveS(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(_){}}
+
+// UI state (not persisted)
+let TAB='hjem', ADD=false, NEWCAT='hus';
+let OG_OPEN={}, SG_OPEN={};
+let MODAL_DATE=null;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+const tod=()=>new Date().toDateString();
+const now=()=>{const n=new Date();return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');};
+const rndMsg=()=>MSGS[Math.floor(Math.random()*MSGS.length)];
+const rollXP=(base)=>{const v=Math.floor(base*.22);return base+Math.floor(Math.random()*v*2)-v;};
+const catInfo=id=>CATS.find(c=>c.id===id)||CATS[CATS.length-1];
+const lvlOf=xp=>[...LVL].reverse().find(l=>xp>=l.min)||LVL[0];
+const nextLvl=xp=>LVL.find(l=>l.min>xp)||null;
+const todLogs=(logs,id)=>{const t=tod();return(logs[id]||[]).filter(e=>e.date===t);};
+const lastLog=(logs,id)=>{const a=logs[id]||[];return a.length?a[a.length-1]:null;};
+const addLog=(logs,id)=>{const p=logs[id]||[];return Object.assign({},logs,{[id]:[...p,{date:tod(),time:now()}]});};
+function bumpStreak(){const t=tod(),y=new Date();y.setDate(y.getDate()-1);if(S.lastDate===t)return S.streak;if(S.lastDate===y.toDateString())return S.streak+1;return 1;}
+function fmtLog(log){if(!log)return'';return log.date===tod()?'sist kl. '+log.time:'sist '+log.date;}
+function daysSince(log){if(!log)return null;return Math.floor((new Date()-new Date(log.date))/86400000);}
+
+function findTask(id,groups){
+  for(const g of groups){
+    if(g.tasks){const t=g.tasks.find(t=>t.id===id);if(t)return{task:t,cat:g.cat};}
+    if(g.subgroups){for(const sg of g.subgroups){const t=sg.tasks.find(t=>t.id===id);if(t)return{task:t,cat:g.cat};}}
+  }
+  return null;
+}
+
+function groupHit(g,logs){return countDone(g,logs)>0;}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+
+let tTimer=null;
+function toast(msg,xp){
+  const el=document.getElementById('toast');
+  el.innerHTML=`<div style="color:#90e060;font-size:14px">${msg}</div><div style="color:#c8a84b;font-weight:bold;font-size:17px;margin-top:3px">+${xp} XP</div>`;
+  el.classList.add('show');if(tTimer)clearTimeout(tTimer);tTimer=setTimeout(()=>el.classList.remove('show'),3800);
+}
+
+function render(){
+  document.getElementById('app').innerHTML=hdr()+`<div id="cnt">${page()}</div>`+tbar();
+  bind();
+}
+
+function hdr(){
+  const l=lvlOf(S.xp),n=nextLvl(S.xp),prog=n?Math.min(100,((S.xp-l.min)/(n.min-l.min))*100):100;
+  const slept=S.sleepDate===tod();
+  const txp=S.history.filter(h=>h.date===tod()).reduce((s,h)=>s+h.xp,0);
+  return`<div id="hdr">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <div style="font-size:10px;letter-spacing:3px;color:#c8a84b;text-transform:uppercase;margin-bottom:2px">${l.jp} — ${l.t}</div>
+      <div style="font-size:24px;font-weight:bold;color:#f8e060;line-height:1">${S.xp.toLocaleString('nb')} <span style="font-size:14px;color:#c8a84b;font-weight:normal">XP</span></div>
+      ${S.streak>0?`<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:3px">🔥 ${S.streak} dager på rad</div>`:''}
+    </div>
+    <button class="slpbtn${slept?' off':''}" id="slp" ${slept?'disabled':''}>
+      <span style="font-size:20px">🌙</span>
+      <span style="font-size:10px">${slept?'Sover':'Legger meg'}</span>
+    </button>
+  </div>
+  ${n?`<div class="xbbg"><div class="xbfill" style="width:${prog}%"></div></div>
+  <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:3px">${(n.min-S.xp).toLocaleString('nb')} XP til ${n.t} (${n.jp})</div>`:''}
+  </div>`;
+}
+
+function tbar(){
+  return`<div id="tbar">${[['hjem','🏯','Hjem'],['ute','🌿','Ute'],['oppgaver','📜','Gjøremål'],['stats','📊','Stats']].map(([id,ic,lb])=>
+    `<button class="tb${TAB===id?' on':''}" data-tab="${id}"><i>${ic}</i><span>${lb}</span></button>`).join('')}</div>`;
+}
+
+function page(){
+  if(TAB==='hjem')     return pgGrind();
+  if(TAB==='ute')      return pgUte();
+  if(TAB==='oppgaver') return pgTodo();
+  if(TAB==='stats')    return pgStats();
+  return'';
+}
+
+// ── SUBTASK BUTTON ────────────────────────────────────────────────────────────
+
+function stBtn(task, logs, type){
+  const tc=todLogs(logs,task.id),ll=lastLog(logs,task.id),cnt=tc.length;
+  const ds=task.monthly?daysSince(ll):null;
+  const warn=ds!==null&&ds>=28?`<span style="color:#f87060;font-size:10px;margin-left:6px">⚠️ ${ds} dager siden</span>`:'';
+  const badge=task.monthly?`<span style="font-size:10px;color:#c8a84b;background:rgba(200,168,75,.15);padding:2px 7px;border-radius:8px;margin-left:6px">Månedlig</span>`:'';
+  const meta=ll?(cnt>0?cnt+'× i dag · ':'')+fmtLog(ll):'';
+  return`<button class="stbtn${cnt>0?' hit':''}" data-a="dst" data-id="${task.id}" data-type="${type}">
+    <div style="flex:1">
+      <div style="font-size:14px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">
+        ${cnt>0?'✅ ':''}${task.name}${badge}${warn}
+      </div>
+      ${meta?`<div class="tmeta">${meta}</div>`:''}
+    </div>
+    <span style="font-size:10px;color:rgba(255,255,255,.2);flex-shrink:0">${cnt>0?'Igjen':'✓'}</span>
+  </button>`;
+}
+
+// ── HELPERS: count ────────────────────────────────────────────────────────────
+
+function countTasks(g){
+  if(g.tasks)return g.tasks.length;
+  if(g.subgroups)return g.subgroups.reduce((s,sg)=>s+sg.tasks.length,0);
+  return 0;
+}
+function countDone(g,logs){
+  if(g.tasks)return g.tasks.filter(t=>todLogs(logs,t.id).length>0).length;
+  if(g.subgroups)return g.subgroups.reduce((s,sg)=>s+sg.tasks.filter(t=>todLogs(logs,t.id).length>0).length,0);
+  return 0;
+}
+function progBar(done,total){
+  if(!total)return'';
+  return`<div style="display:flex;gap:3px;margin-top:7px">${Array.from({length:total},(_,i)=>
+    `<div style="flex:1;height:4px;border-radius:2px;background:${i<done?'linear-gradient(90deg,#70d050,#40a030)':'rgba(255,255,255,.1)'}"></div>`
+  ).join('')}</div>`;
+}
+
+// ── GROUP RENDER ──────────────────────────────────────────────────────────────
+
+function renderGroup(g, logs, type){
+  const total=countTasks(g), done=countDone(g,logs);
+  const full=done>0&&done===total;
+  const open=OG_OPEN[g.id];
+  let inner='';
+  if(g.subgroups){
+    inner=g.subgroups.map(sg=>{
+      const sgOpen=SG_OPEN[sg.id];
+      const sgHit=sg.tasks.some(t=>todLogs(logs,t.id).length>0);
+      return`<div>
+        <button class="sgbtn${sgHit?' hit':''}${sgOpen?' open':''}" data-a="togglesg" data-id="${sg.id}">
+          <span style="font-size:17px">${sg.icon}</span>
+          <span style="flex:1;font-size:14px">${sg.name}</span>
+          <span class="chev">›</span>
+        </button>
+        <div class="sgpanel${sgOpen?' open':''}" id="sgp-${sg.id}">
+          <div class="sgpanel-inner">${sg.tasks.map(t=>stBtn(t,logs,type)).join('')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    inner=g.tasks.map(t=>stBtn(t,logs,type)).join('');
+  }
+  return`<div style="margin-bottom:8px">
+    <button class="gbtn${full?' full':done>0?' hit':''}${open?' open':''}" data-a="toggleg" data-id="${g.id}">
+      <span style="font-size:22px">${g.icon}</span>
+      <div class="gbtn-mid">
+        <div style="font-size:15px;display:flex;align-items:center;gap:8px">
+          ${g.name}
+          ${full?'<span style="font-size:11px;color:#70d050">✓ Ferdig</span>':done>0?`<span style="font-size:11px;color:rgba(255,255,255,.35)">${done}/${total}</span>`:''}
+        </div>
+        ${progBar(done,total)}
+      </div>
+      <span class="chev">›</span>
+    </button>
+    <div class="gpanel${open?' open':''}" id="gp-${g.id}">
+      <div class="gpanel-inner">${inner}</div>
+    </div>
+  </div>`;
+}
+
+// ── PAGES ─────────────────────────────────────────────────────────────────────
+
+function pgGrind(){
+  const txp=S.history.filter(h=>h.date===tod()).reduce((s,h)=>s+h.xp,0);
+  let bonus='';
+  if(S.bonus){const bt=S.todos.find(t=>t.id===S.bonus.tid);if(bt)bonus=`<div style="margin-top:14px;padding:14px 16px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.3);border-radius:12px"><div style="font-size:10px;letter-spacing:2px;color:#c8a84b;text-transform:uppercase;margin-bottom:5px">⚔️ Dagens utfordring +${S.bonus.bxp} bonus XP</div><div style="color:#f8e060;font-size:15px">${bt.name}</div><div style="color:rgba(255,255,255,.35);font-size:12px;margin-top:3px">${S.bonus.grunn}</div></div>`;}
+  return`<div class="slbl">Daglig Grind</div>
+  ${DG.map(g=>renderGroup(g,S.dlog,'daily')).join('')}
+  ${bonus}
+  <div style="text-align:center;margin-top:12px;color:rgba(255,255,255,.2);font-size:12px">I dag: +${txp} XP</div>`;
+}
+
+function pgUte(){
+  return`<div class="slbl">Ute</div>
+  <div style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:14px">Trykk en gruppe, velg hva du har gjort.</div>
+  ${OG.map(g=>renderGroup(g,S.olog,'outdoor')).join('')}`;
+}
+
+function pgTodo(){
+  const form=ADD?`<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:16px">
+    <input type="text" id="ni" placeholder="Hva må gjøres?">
+    <div style="margin-bottom:10px">${CATS.map(c=>`<button class="catpill${NEWCAT===c.id?' on':''}" data-a="setcat" data-cat="${c.id}">${c.icon} ${c.lbl}</button>`).join('')}</div>
+    <button style="width:100%;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);border-radius:8px;padding:11px;color:#f8e060;font-size:14px;cursor:pointer;font-family:Georgia,serif" data-a="addtodo">Legg til</button>
+  </div>`:'';
+
+  const list=S.todos.length===0
+    ?'<div style="text-align:center;padding:48px 0;color:rgba(255,255,255,.2);font-size:14px">Ingen gjøremål ennå.<br>Trykk «+ Legg til» for å starte.</div>'
+    :S.todos.map(t=>{const ib=S.bonus?.tid===t.id,ci=catInfo(t.category);return`<div style="background:${ib?'rgba(200,168,75,.07)':'rgba(255,255,255,.04)'};border:1px solid ${ib?'rgba(200,168,75,.3)':'rgba(255,255,255,.1)'};border-radius:12px;padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">${ci.icon}</span><div style="flex:1;min-width:0"><div style="color:#f0ece4;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}${ib?' <span style="font-size:10px;color:#c8a84b">⚔️</span>':''}</div><div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px">${ci.lbl}</div></div><button class="btn btnok" data-a="dotodo" data-id="${t.id}" style="padding:5px 12px;flex-shrink:0">✓</button><button style="background:transparent;border:none;color:rgba(255,255,255,.2);font-size:16px;cursor:pointer;padding:0 3px;flex-shrink:0" data-a="deltodo" data-id="${t.id}">✕</button></div>`;}).join('');
+
+  return`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div class="slbl" style="margin:0">Gjøremål (${S.todos.length})</div>
+    <div style="display:flex;gap:8px">
+      ${S.todos.length>=2?`<button class="btn btng" data-a="bonus">⚔️ Utfordring</button>`:''}
+      <button class="btn" data-a="toggle">${ADD?'✕ Lukk':'+ Legg til'}</button>
+    </div>
+  </div>${form}${list}`;
+}
+
+function pgStats(){
+  const l=lvlOf(S.xp);
+  const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const k=d.toDateString();return{lb:['Søn','Man','Tir','Ons','Tor','Fre','Lør'][d.getDay()],xp:S.history.filter(h=>h.date===k).reduce((s,h)=>s+h.xp,0),date:k};});
+  const mx=Math.max(...days.map(d=>d.xp),1);
+  const chart=`<div style="display:flex;gap:5px;align-items:flex-end;height:100px;margin-bottom:22px">${days.map(d=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">${d.xp>0?`<div style="font-size:9px;color:rgba(255,255,255,.35)">${d.xp}</div>`:''}<button class="daybar" data-a="showday" data-date="${d.date}" style="width:100%;height:${d.xp?Math.max(12,(d.xp/mx)*68):6}px;background:${d.xp?'linear-gradient(180deg,#f8e060,#c8a84b)':'rgba(255,255,255,.06)'};border:none;padding:0;min-height:${d.xp?'12':'6'}px"></button><div style="font-size:10px;color:${d.date===tod()?'#f8e060':'rgba(255,255,255,.35)'}">${d.lb}</div></div>`).join('')}</div>`;
+  const cm={};S.history.forEach(h=>{if(!cm[h.cat])cm[h.cat]={xp:0,n:0};cm[h.cat].xp+=h.xp;cm[h.cat].n++;});
+  const cs=CATS.filter(c=>cm[c.id]).map(c=>({...c,...cm[c.id]})).sort((a,b)=>b.xp-a.xp);
+  const mcx=Math.max(...cs.map(c=>c.xp),1);
+  const cbars=cs.length?`<div class="slbl">XP per kategori</div>${cs.map(c=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:11px"><span style="font-size:17px">${c.icon}</span><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;color:#f0ece4">${c.lbl}</span><span style="font-size:12px;color:#c8a84b">${c.xp} XP · ${c.n}×</span></div><div class="sbbg"><div class="sbfill" style="width:${(c.xp/mcx)*100}%"></div></div></div></div>`).join('')}`:'';
+  const lvls=LVL.map(ll=>{const r=S.xp>=ll.min,ic=lvlOf(S.xp).min===ll.min;return`<div class="lvlrow${ic?' cur':''}" style="opacity:${r?1:.35}"><span style="font-size:14px">${r?'⚔️':'🔒'}</span><span style="font-size:13px;color:${ic?'#f8e060':'#f0ece4'};flex:1">${ll.jp} — ${ll.t}</span><span style="font-size:11px;color:rgba(255,255,255,.3)">${ll.min.toLocaleString('nb')} XP</span></div>`;}).join('');
+  return`<div class="g2">${[['⚡','Total XP',S.xp.toLocaleString('nb')],['✅','Oppgaver',S.history.length],['⚔️','Rang',l.t],['🔥','Streak',S.streak+' dager']].map(([ic,lb,v])=>`<div class="sc"><div style="font-size:20px">${ic}</div><div style="font-size:18px;font-weight:bold;color:#f8e060;margin-top:4px">${v}</div><div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px">${lb}</div></div>`).join('')}</div>
+  <div class="slbl">XP siste 7 dager</div>${chart}${cbars}
+  <div class="slbl" style="margin-top:20px">Samurai-rang</div>${lvls}
+  ${S.history.length===0?'<div style="text-align:center;padding:30px 0;color:rgba(255,255,255,.2);font-size:13px">Fullfør noen oppgaver for å se statistikk.</div>':''}`;
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+
+function bind(){
+  document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>{TAB=el.dataset.tab;ADD=false;render();}));
+  const slp=document.getElementById('slp');if(slp)slp.addEventListener('click',doSleep);
+  document.querySelectorAll('[data-a]').forEach(el=>el.addEventListener('click',()=>{
+    const a=el.dataset.a;
+    if(a==='toggleg')  doToggleG(el.dataset.id);
+    if(a==='togglesg') doToggleSG(el.dataset.id);
+    if(a==='dst')      doSubtask(el.dataset.id,el.dataset.type);
+    if(a==='dotodo')   doTodo(el.dataset.id);
+    if(a==='deltodo')  delTodo(el.dataset.id);
+    if(a==='toggle')   {ADD=!ADD;render();}
+    if(a==='addtodo')  addTodo();
+    if(a==='bonus')    doBonus();
+    if(a==='setcat')   {NEWCAT=el.dataset.cat;render();setTimeout(()=>document.getElementById('ni')?.focus(),40);}
+    if(a==='showday')  showDay(el.dataset.date);
+  }));
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+
+function doToggleG(id){OG_OPEN[id]=!OG_OPEN[id];render();}
+function doToggleSG(id){SG_OPEN[id]=!SG_OPEN[id];render();}
+
+function doSubtask(id,type){
+  const groups=type==='daily'?DG:OG;
+  const found=findTask(id,groups);
+  if(!found)return;
+  const earned=rollXP(found.task.xp);
+  const lkey=type==='daily'?'dlog':'olog';
+  S[lkey]=addLog(S[lkey],id);
+  S.xp+=earned; S.streak=bumpStreak(); S.lastDate=tod();
+  S.history=[...S.history,{name:found.task.name,cat:found.cat,xp:earned,date:tod()}];
+  saveS(); toast(rndMsg(),earned); render();
+}
+
+function doTodo(id){
+  const todo=S.todos.find(t=>t.id===id);if(!todo)return;
+  const ib=S.bonus?.tid===id;
+  const ci=catInfo(todo.category);
+  const earned=rollXP(ci.xp)+(ib?S.bonus.bxp:0);
+  S.todos=S.todos.filter(t=>t.id!==id);
+  S.xp+=earned; S.streak=bumpStreak(); S.lastDate=tod();
+  S.history=[...S.history,{name:todo.name,cat:todo.category,xp:earned,date:tod(),bonus:ib}];
+  if(ib)S.bonus=null;
+  saveS(); toast(rndMsg()+(ib?' ⚔️ Bonus!':''),earned); render();
+}
+
+function addTodo(){
+  const el=document.getElementById('ni');if(!el)return;
+  const name=el.value.trim();if(!name)return;
+  S.todos=[...S.todos,{id:Date.now().toString(),name,category:NEWCAT,added:tod()}];
+  saveS(); ADD=false; render();
+}
+
+function delTodo(id){
+  S.todos=S.todos.filter(t=>t.id!==id);
+  if(S.bonus?.tid===id)S.bonus=null;
+  saveS(); render();
+}
+
+function doSleep(){
+  if(S.sleepDate===tod())return;
+  const h=new Date().getHours(),ok=h>=21||h<3,earned=ok?25:8;
+  S.xp+=earned; S.sleepDate=tod();
+  saveS(); toast(ok?'Visdom og hvile — en kriger vet å hvile.':'Seint, men ikke for sent.',earned); render();
+}
+
+function doBonus(){
+  if(!S.todos.length)return;
+  const sorted=[...S.todos].sort((a,b)=>a.added<b.added?-1:1);
+  S.bonus={tid:sorted[0].id,bxp:30,grunn:BR[Math.floor(Math.random()*BR.length)]};
+  saveS(); render();
+}
+
+function fmtDate(dateStr){
+  const d=new Date(dateStr);
+  const days=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
+  const months=['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  return days[d.getDay()]+' '+d.getDate()+'. '+months[d.getMonth()];
+}
+
+function showDay(date){
+  const entries=S.history.filter(h=>h.date===date);
+  const totalXP=entries.reduce((s,h)=>s+h.xp,0);
+  const isToday=date===tod();
+
+  const items=entries.length===0
+    ?'<div style="color:rgba(255,255,255,.3);text-align:center;padding:24px 0;font-size:14px">Ingen aktivitet denne dagen.</div>'
+    :entries.map(h=>{
+      const ci=catInfo(h.cat);
+      return`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <span style="font-size:20px">${ci.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:14px;color:#f0ece4">${h.name}${h.bonus?' <span style="font-size:11px;color:#c8a84b">⚔️ bonus</span>':''}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px">${ci.lbl}</div>
+        </div>
+        <span style="color:#c8a84b;font-size:14px;font-weight:bold;flex-shrink:0">+${h.xp}</span>
+      </div>`;
+    }).join('');
+
+  document.getElementById('modal-box').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:10px;letter-spacing:3px;color:#c8a84b;text-transform:uppercase;margin-bottom:3px">Daglig logg</div>
+        <div style="font-size:19px;color:#f8e060">${isToday?'I dag':fmtDate(date)}</div>
+      </div>
+      <button onclick="closeModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 12px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:Georgia,serif">✕ Lukk</button>
+    </div>
+    ${items}
+    ${entries.length>0?`<div style="text-align:right;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1);color:#c8a84b;font-size:15px;font-weight:bold">Total: +${totalXP} XP &nbsp;·&nbsp; ${entries.length} oppgaver</div>`:''}`;
+  document.getElementById('modal-wrap').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modal-wrap').classList.remove('show');
+}
+
+// ── START ─────────────────────────────────────────────────────────────────────
+loadS(); render();
+
+</script>
+</body>
+</html>.sgbtn{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;color:#f0ece4;font-family:Georgia,serif;transition:background .2s}
+.sgbtn.hit{background:rgba(90,180,70,.07);border-color:rgba(90,180,70,.18)}
+.sgbtn .chev{margin-left:auto;font-size:14px;color:rgba(255,255,255,.25);transition:transform .25s}
+.sgbtn.open .chev{transform:rotate(90deg)}
+.sgpanel{display:none}
+.sgpanel.open{display:block;animation:sld .2s ease}
+.sgpanel-inner{padding:4px 0 2px 12px;display:flex;flex-direction:column;gap:5px}
+
+/* subtask button */
+.stbtn{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;color:#f0ece4;font-family:Georgia,serif;text-align:left}
+.stbtn.hit{background:rgba(90,180,70,.08);border-color:rgba(90,180,70,.18)}
+.tmeta{font-size:10px;color:rgba(255,255,255,.35);margin-top:3px}
+
+.slbl{font-size:10px;letter-spacing:3px;color:#c8a84b;text-transform:uppercase;margin-bottom:12px}
+.xbbg{background:rgba(255,255,255,.08);border-radius:4px;height:5px;margin-top:10px}
+.xbfill{background:linear-gradient(90deg,#c8a84b,#f0c030);height:100%;border-radius:4px;transition:width .6s}
 #toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#132213,#0a1a0a);border:1px solid rgba(100,210,80,.4);border-radius:12px;padding:12px 20px;z-index:9999;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.6);max-width:280px;width:90%;pointer-events:none;opacity:0;transition:opacity .3s}
 #toast.show{opacity:1}
 .btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px 13px;color:rgba(255,255,255,.65);font-size:12px;cursor:pointer;font-family:Georgia,serif}
