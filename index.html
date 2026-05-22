@@ -20,10 +20,12 @@ body{background:linear-gradient(160deg,#0d0b18 0%,#160d28 55%,#0b1826 100%) fixe
 .tb i{font-size:19px;font-style:normal;line-height:1}
 
 /* group button */
-.gbtn{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;color:#f0ece4;font-family:Georgia,serif;text-align:left;transition:background .2s,border .2s}
+.gbtn{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;color:#f0ece4;font-family:Georgia,serif;text-align:left;transition:background .2s,border .2s}
 .gbtn.hit{background:rgba(90,180,70,.1);border-color:rgba(90,180,70,.25)}
-.gbtn .chev{margin-left:auto;font-size:16px;color:rgba(255,255,255,.3);transition:transform .25s}
+.gbtn.full{background:rgba(90,180,70,.13);border-color:rgba(90,180,70,.35)}
+.gbtn .chev{margin-left:auto;font-size:16px;color:rgba(255,255,255,.3);transition:transform .25s;flex-shrink:0}
 .gbtn.open .chev{transform:rotate(90deg)}
+.gbtn-mid{flex:1;min-width:0}
 
 /* group panel */
 .gpanel{display:none}
@@ -91,6 +93,7 @@ const DG = [ // Daglig Grind groups
   ]},
   {id:'stud', name:'Studio',       icon:'🎸', cat:'musikk', tasks:[
     {id:'st-o',  name:'Øving',             xp:28},
+    {id:'st-k',  name:'Komponering',       xp:32},
     {id:'st-i',  name:'Innspilling',       xp:36},
     {id:'st-m',  name:'Miksing/Mastering', xp:44},
   ]},
@@ -244,11 +247,7 @@ function findTask(id,groups){
   return null;
 }
 
-function groupHit(g,logs){
-  if(g.tasks)return g.tasks.some(t=>todLogs(logs,t.id).length>0);
-  if(g.subgroups)return g.subgroups.some(sg=>sg.tasks.some(t=>todLogs(logs,t.id).length>0));
-  return false;
-}
+function groupHit(g,logs){return countDone(g,logs)>0;}
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 
@@ -317,10 +316,30 @@ function stBtn(task, logs, type){
   </button>`;
 }
 
+// ── HELPERS: count ────────────────────────────────────────────────────────────
+
+function countTasks(g){
+  if(g.tasks)return g.tasks.length;
+  if(g.subgroups)return g.subgroups.reduce((s,sg)=>s+sg.tasks.length,0);
+  return 0;
+}
+function countDone(g,logs){
+  if(g.tasks)return g.tasks.filter(t=>todLogs(logs,t.id).length>0).length;
+  if(g.subgroups)return g.subgroups.reduce((s,sg)=>s+sg.tasks.filter(t=>todLogs(logs,t.id).length>0).length,0);
+  return 0;
+}
+function progBar(done,total){
+  if(!total)return'';
+  return`<div style="display:flex;gap:3px;margin-top:7px">${Array.from({length:total},(_,i)=>
+    `<div style="flex:1;height:4px;border-radius:2px;background:${i<done?'linear-gradient(90deg,#70d050,#40a030)':'rgba(255,255,255,.1)'}"></div>`
+  ).join('')}</div>`;
+}
+
 // ── GROUP RENDER ──────────────────────────────────────────────────────────────
 
 function renderGroup(g, logs, type){
-  const hit=groupHit(g,logs);
+  const total=countTasks(g), done=countDone(g,logs);
+  const full=done>0&&done===total;
   const open=OG_OPEN[g.id];
   let inner='';
   if(g.subgroups){
@@ -342,9 +361,15 @@ function renderGroup(g, logs, type){
     inner=g.tasks.map(t=>stBtn(t,logs,type)).join('');
   }
   return`<div style="margin-bottom:8px">
-    <button class="gbtn${hit?' hit':''}${open?' open':''}" data-a="toggleg" data-id="${g.id}">
+    <button class="gbtn${full?' full':done>0?' hit':''}${open?' open':''}" data-a="toggleg" data-id="${g.id}">
       <span style="font-size:22px">${g.icon}</span>
-      <span style="flex:1;font-size:15px">${g.name}</span>
+      <div class="gbtn-mid">
+        <div style="font-size:15px;display:flex;align-items:center;gap:8px">
+          ${g.name}
+          ${full?'<span style="font-size:11px;color:#70d050">✓ Ferdig</span>':done>0?`<span style="font-size:11px;color:rgba(255,255,255,.35)">${done}/${total}</span>`:''}
+        </div>
+        ${progBar(done,total)}
+      </div>
       <span class="chev">›</span>
     </button>
     <div class="gpanel${open?' open':''}" id="gp-${g.id}">
